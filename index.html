@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Stlite app</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.89.1/build/stlite.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.89.1/build/stlite.js"
+mount(
+  {
+    requirements: ["requests", "pandas"],
+    entrypoint: "streamlit_app.py",
+    files: {
+"streamlit_app.py": `import pandas as pd
+import requests
+import streamlit as st
+
+API_URL = "http://51.161.35.178:7000/"
+# ==========================
+# 3. Streamlit UI
+# ==========================
+st.set_page_config(page_title="Stock News Web Search", layout="wide")
+
+st.title("📈 Stock News Web Search with Langchain Tools")
+st.write("Retrieve news for a ticker and evaluate the sentiment.")
+
+col1, col2 = st.columns(2)
+with col1:
+    ticker = st.text_input("🔍 Enter a ticker (e.g., AAPL, TSLA, MSFT):", value="AAPL")
+with col2:
+    pass
+
+available_sources = [
+    "Bloomberg",
+    "Reuters",
+    "Yahoo",
+    "MarketWatch",
+    "Investing",
+    "Wall Street Journal",
+]
+selected_sources = st.multiselect("📰 Filter by news sources:", available_sources)
+
+if st.button("Fetch News"):
+    with st.spinner("Fetching news and evaluating sentiment..."):
+        url = f"{API_URL}today-news?ticker={ticker}&max_results=10"
+        if selected_sources:
+            sources_list = ','.join([s for s in selected_sources])
+            url += f'&sources={sources_list}'
+        res = requests.get(url)
+        if res.status_code == 200:
+            news_data = res.json()["news"]
+        else:
+            news_data = []
+    try:
+        if news_data:
+            df_results = pd.DataFrame(news_data)
+
+            def highlight_sentiment(row):
+                color = ""
+                if row["sentiment"] == "Positive":
+                    color = "background-color: #d4f7d4;"  # verde claro
+                elif row["sentiment"] == "Negative":
+                    color = "background-color: #f7d4d4;"  # rojo claro
+                return [color] * len(row)
+
+            styled_df = df_results.style.apply(highlight_sentiment, axis=1)
+            st.subheader(f"📰 News related to **{ticker.upper()}**")
+            st.dataframe(
+                styled_df,
+                use_container_width=True,
+                height=500,
+                column_config={
+                    "snippet": st.column_config.TextColumn(
+                        "Snippet",
+                        width="medium",  # ocupa ~50%
+                        help="Extract from the article",
+                        max_chars=None,
+                    ),
+                    "title": st.column_config.TextColumn("Title", width="small"),
+                    "link": st.column_config.LinkColumn("Link", width="small"),
+                    "sentiment": st.column_config.TextColumn(
+                        "Sentiment", width="small"
+                    ),
+                    "confidence": st.column_config.NumberColumn(
+                        "Confidence", format="%.2f"
+                    ),
+                },
+            )
+        else:
+            st.warning("⚠️ No news found for the given ticker and selected sources.")
+    except Exception:
+        st.warning("⚠️ No news found for the given ticker and selected sources.")
+
+st.markdown(
+    """
+    <hr style="margin-top:50px; margin-bottom:10px;">
+    <p style='text-align: center; font-size: 14px; color: gray;'>
+        Created by: <a href="https://www.linkedin.com/in/yitsymc/" target="_blank">Yitsy Mosqueda Cabrera</a>
+    </p>
+    """,
+    unsafe_allow_html=True,
+)
+`,
+
+},
+  },
+  document.getElementById("root")
+)
+
+    </script>
+  </body>
+  <!-- Generated from Stlite Sharing (https://edit.share.stlite.net/), and the source version is 8413a8fdd17b840f2870bdb8f43e8781722266bf -->
+</html>
